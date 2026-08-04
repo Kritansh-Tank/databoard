@@ -7,7 +7,7 @@
 ### Backend
 | Library | Version | Purpose |
 |---|---|---|
-| Python | 3.11 | Runtime |
+| Python | 3.14 | Runtime (production: Ubuntu 26.04 system Python) |
 | FastAPI | 0.115.0 | REST API framework |
 | Uvicorn | 0.30.6 | ASGI server |
 | SQLAlchemy | 2.0.35 | ORM / database abstraction |
@@ -20,6 +20,7 @@
 | python-multipart | 0.0.12 | CSV file upload support |
 | pandas | 2.2.3 | CSV parsing & statistics |
 | python-dotenv | 1.0.1 | Load `.env` variables |
+| email-validator | 2.3.0 | Email field validation (required by pydantic) |
 | httpx | 0.27.2 | Async HTTP client (used in tests) |
 | pytest | 8.3.3 | Test runner |
 | pytest-asyncio | 0.24.0 | Async test support |
@@ -42,10 +43,11 @@
 ### Infrastructure
 | Service | Config | Purpose |
 |---|---|---|
-| AWS RDS PostgreSQL | db.t4g.micro, 20 GiB gp2 | Database (Free tier) |
-| AWS EC2 | t3.micro, Ubuntu 26.04 LTS, 8 GiB gp3 | Backend hosting (Free tier) |
-| AWS S3 | us-east-1 | Frontend static hosting |
-| AWS CloudFront | — | CDN + HTTPS for frontend |
+| AWS RDS PostgreSQL | db.t4g.micro, 20 GiB gp2, us-east-1 | Database |
+| AWS EC2 | t3.micro, Ubuntu 26.04 LTS, 8 GiB gp3, us-east-1 | Backend hosting |
+| AWS S3 | `databoard-frontend-kritansh`, us-east-1 | Frontend static files |
+| AWS CloudFront (frontend) | `d2bnceyxxb14a6.cloudfront.net` | HTTPS CDN for frontend |
+| AWS CloudFront (backend) | `d1e2ji77wggvgr.cloudfront.net` | HTTPS proxy for EC2 API |
 
 ---
 
@@ -56,6 +58,7 @@
 | Python | ≥ 3.11 | python.org |
 | Node.js | 24.10.0 (≥ 18) | nodejs.org |
 | Angular CLI | ≥ 21 | `npm install -g @angular/cli@21` |
+| AWS CLI | any | aws.amazon.com/cli |
 | AWS Account | Free tier | aws.amazon.com |
 
 ---
@@ -67,8 +70,9 @@
 2. Engine: **PostgreSQL** · Template: **Free tier**
 3. DB identifier: `databoard-db`
 4. Master username: `dbadmin` · Set a strong password
-5. **Publicly accessible: Yes**
-6. Click **Create** (takes ~5 min)
+5. Initial database name: `databoard`
+6. **Publicly accessible: Yes**
+7. Click **Create** (takes ~5 min)
 
 ### Open Port 5432
 - Go to RDS instance → **Connectivity & security** → click the VPC security group
@@ -81,9 +85,9 @@ postgresql://dbadmin:<password>@<your-endpoint>.rds.amazonaws.com:5432/databoard
 ```
 > ⚠️ Use `databoard` (not `postgres`) — this is the **Initial database name** set during RDS creation.
 
-**Example (project RDS):**
+**Project RDS endpoint:**
 ```
-postgresql://dbadmin:<password>@databoard-db.cixyeakci7ph.us-east-1.rds.amazonaws.com:5432/databoard
+databoard-db.cixyeakci7ph.us-east-1.rds.amazonaws.com
 ```
 
 ---
@@ -222,11 +226,21 @@ All `400` errors from FastAPI carry a `{ "detail": "..." }` body. The Angular up
 
 ## 7. AWS Production Deployment
 
+### Live URLs
+| Component | URL |
+|---|---|
+| Frontend (HTTPS) | https://d2bnceyxxb14a6.cloudfront.net |
+| Backend API (HTTPS) | https://d1e2ji77wggvgr.cloudfront.net |
+| Backend API docs | https://d1e2ji77wggvgr.cloudfront.net/docs |
+| S3 (HTTP fallback) | http://databoard-frontend-kritansh.s3-website-us-east-1.amazonaws.com |
+
+---
+
 ### Step A — Backend on EC2
 
-```powershell
-# Launch EC2: Ubuntu 26.04 LTS, t3.micro, allow ports 22 + 8000 in security group
-# SSH into it:
+```bash
+# Launch EC2: Ubuntu 26.04 LTS, t3.micro
+# Security group: allow ports 22 (SSH) and 8000 (API)
 ssh -i your-key.pem ubuntu@<ec2-ip>
 ```
 
@@ -238,49 +252,152 @@ git clone https://github.com/Kritansh-Tank/databoard.git
 cd databoard/backend
 
 python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
 
-# Create .env with RDS values
+# Use --prefer-binary to avoid compilation failures on Python 3.14
+pip install --prefer-binary -r requirements.txt
+
+# email-validator must be installed separately (pydantic dependency)
+pip install email-validator
+
+# Create .env with RDS connection string and SECRET_KEY
 nano .env
-
-# Run (detached with nohup, or set up systemd)
-nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 &
 ```
+
+**`.env` contents:**
+```
+DATABASE_URL=postgresql://dbadmin:<password>@databoard-db.cixyeakci7ph.us-east-1.rds.amazonaws.com:5432/databoard
+SECRET_KEY=<your-secret-key>
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+```
+
+#### Set up systemd for auto-restart
+
+```bash
+sudo nano /etc/systemd/system/databoard.service
+```
+
+Paste:
+```ini
+[Unit]
+Description=DataBoard FastAPI Backend
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/databoard/backend
+Environment="PATH=/home/ubuntu/databoard/backend/venv/bin"
+ExecStart=/home/ubuntu/databoard/backend/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable databoard
+sudo systemctl start databoard
+sudo systemctl status databoard   # should show: active (running)
+```
+
+#### Deploying updates
+```bash
+cd ~/databoard/backend
+source venv/bin/activate
+git pull
+sudo systemctl restart databoard
+```
+
+---
 
 ### Step B — Frontend on S3 + CloudFront
 
-```powershell
-# Edit production API URL first
-# k:\Web-apps\xVector\frontend\src\environments\environment.prod.ts
-# Set apiUrl to: http://<your-ec2-ip>:8000
-
-cd k:\Web-apps\xVector\frontend
-ng build --configuration=production
-# Output in: dist/frontend/browser/
-
-# Create S3 bucket — name must be globally unique
-# Use same region as your RDS (us-east-1)
-aws s3 mb s3://databoard-frontend-<yourname> --region us-east-1
-aws s3 website s3://databoard-frontend-<yourname> --index-document index.html --error-document index.html
-
-# Upload build
-# Note: --acl public-read is deprecated; use bucket policy for public access instead
-aws s3 sync dist/frontend/browser/ s3://databoard-frontend-<yourname>
-
-# Create CloudFront distribution pointing to S3
-# → AWS Console → CloudFront → Create Distribution → Origin: your S3 bucket
-# → Default root object: index.html
-# → Error pages: 403/404 → /index.html (for Angular routing)
+**1. Update production API URL** in `frontend/src/environments/environment.prod.ts`:
+```typescript
+export const environment = {
+  production: true,
+  apiUrl: 'https://d1e2ji77wggvgr.cloudfront.net',  // Backend CloudFront HTTPS
+};
 ```
 
-### Update CORS on Backend
+**2. Build:**
+```powershell
+cd k:\Web-apps\xVector\frontend
+ng build --configuration=production
+# Output: dist/frontend/browser/
+```
 
-In `backend/app/main.py`, update `allow_origins` with your CloudFront URL:
+**3. Create S3 bucket** (AWS Console → S3):
+- Name: `databoard-frontend-kritansh` (globally unique)
+- Region: `us-east-1`
+- Block all public access: **uncheck all**
+- Enable static website hosting: index doc = `index.html`, error doc = `index.html`
+- Add bucket policy:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Sid": "PublicReadGetObject",
+    "Effect": "Allow",
+    "Principal": "*",
+    "Action": "s3:GetObject",
+    "Resource": "arn:aws:s3:::databoard-frontend-kritansh/*"
+  }]
+}
+```
+
+**4. Upload build:**
+```powershell
+aws s3 sync dist\frontend\browser\ s3://databoard-frontend-kritansh --delete
+```
+
+**5. Create CloudFront distribution for frontend** (AWS Console → CloudFront):
+- Origin: S3 website endpoint → click "Use website endpoint"
+- Distribution name: `databoard-frontend`
+- WAF: disable
+- After creation, add **custom error pages**: `403` and `404` → `/index.html` → response code `200`
+
+**6. Invalidate cache after each deploy:**
+```powershell
+aws cloudfront create-invalidation --distribution-id E2JJHHR9V7XFNX --paths "/*"
+```
+
+---
+
+### Step C — Backend CloudFront (HTTPS for API)
+
+> Required to avoid mixed-content browser errors when the frontend is HTTPS.
+
+**Create CloudFront distribution for backend** (AWS Console → CloudFront):
+- Origin type: **Other**
+- Origin domain: `ec2-54-196-244-196.compute-1.amazonaws.com`
+- Protocol: **HTTP only** · HTTP port: **8000**
+- Distribution name: `databoard-backend`
+- Viewer protocol policy: **HTTPS only**
+- Allowed HTTP methods: `GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE`
+- Cache policy: **CachingDisabled**
+- Origin request policy: **AllViewer**
+- WAF: disable
+
+---
+
+### CORS Configuration
+
+`backend/app/main.py` — `allow_origins` must include all frontend origins:
+
 ```python
 allow_origins=[
-    "http://localhost:4200",
-    "https://<your-cloudfront-id>.cloudfront.net",
-]
+    "http://localhost:4200",                                                    # Angular dev
+    "http://databoard-frontend-kritansh.s3-website-us-east-1.amazonaws.com",  # S3 HTTP
+    "https://d2bnceyxxb14a6.cloudfront.net",                                  # Frontend CloudFront
+    "https://d1e2ji77wggvgr.cloudfront.net",                                  # Backend CloudFront
+],
+```
+
+After updating, pull and restart on EC2:
+```bash
+git pull && sudo systemctl restart databoard
 ```
 
 ---
@@ -306,16 +423,15 @@ Use this to demo all features including pagination (upload it multiple times to 
 ```
 Browser (Angular)
     │
-    ├── CloudFront → S3   [production]
-    └── localhost:4200    [development]
-         │
-         │  JWT Bearer token (every request)
-         ▼
-     FastAPI (Python)
-     EC2 t2.micro / localhost:8000
-         │
-         │  SQLAlchemy + psycopg2
-         ▼
-     PostgreSQL
-     AWS RDS db.t4g.micro
+    ├── HTTPS → CloudFront (E2JJHHR9V7XFNX / d2bnceyxxb14a6)
+    │               └── S3 bucket (databoard-frontend-kritansh)
+    │
+    └── HTTPS → CloudFront (E18G2FS7ZKFMK2 / d1e2ji77wggvgr)
+                    └── EC2 t3.micro :8000 (FastAPI + uvicorn + systemd)
+                            │
+                            │  SQLAlchemy + psycopg2
+                            ▼
+                        PostgreSQL
+                        AWS RDS db.t4g.micro
+                        (databoard-db.cixyeakci7ph.us-east-1.rds.amazonaws.com)
 ```
