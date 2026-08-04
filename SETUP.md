@@ -225,7 +225,6 @@ All `400` errors from FastAPI carry a `{ "detail": "..." }` body. The Angular up
 
 ## 7. AWS Production Deployment
 
-### Live URLs
 | Component | URL |
 |---|---|
 | Frontend (HTTPS) | https://d2bnceyxxb14a6.cloudfront.net |
