@@ -2,52 +2,51 @@
 
 ---
 
+## Live Demo
+
+> The application is fully deployed on AWS. No local setup required.
+
+| | URL |
+|---|---|
+| **Frontend App** | https://d2bnceyxxb14a6.cloudfront.net |
+| **API (Interactive Docs)** | https://d1e2ji77wggvgr.cloudfront.net/docs |
+
+**Demo account (ready to use):**
+| Field | Value |
+|---|---|
+| Email | `test@example.com` |
+| Password | `password123` |
+
+**Or register a new account**, upload `sample_data.csv` (in repo root), and explore stats & charts.
+
+---
+
+## Architecture
+
+```
+Browser (Angular)
+    │
+    ├── HTTPS → CloudFront (d2bnceyxxb14a6) → S3 (databoard-frontend-kritansh)
+    │
+    └── HTTPS → CloudFront (d1e2ji77wggvgr) → EC2 t3.micro :8000
+                                                  FastAPI + uvicorn + systemd
+                                                        │
+                                                        │ SQLAlchemy + psycopg2
+                                                        ▼
+                                                   PostgreSQL
+                                                   AWS RDS db.t4g.micro
+```
+
+---
+
 ## Tech Stack
 
-### Backend
-| Library | Version | Purpose |
-|---|---|---|
-| Python | 3.14 | Runtime (production: Ubuntu 26.04 system Python) |
-| FastAPI | 0.115.0 | REST API framework |
-| Uvicorn | 0.30.6 | ASGI server |
-| SQLAlchemy | 2.0.35 | ORM / database abstraction |
-| psycopg2-binary | 2.9.9 | PostgreSQL driver |
-| Pydantic | 2.9.2 | Request/response validation |
-| pydantic-settings | 2.5.2 | `.env` config loading |
-| python-jose | 3.3.0 | JWT creation & verification (HS256) |
-| passlib | 1.7.4 | Password hashing (bcrypt backend) |
-| bcrypt | 4.0.1 | Bcrypt implementation (pinned for passlib compat) |
-| python-multipart | 0.0.12 | CSV file upload support |
-| pandas | 2.2.3 | CSV parsing & statistics |
-| python-dotenv | 1.0.1 | Load `.env` variables |
-| email-validator | 2.3.0 | Email field validation (required by pydantic) |
-| httpx | 0.27.2 | Async HTTP client (used in tests) |
-| pytest | 8.3.3 | Test runner |
-| pytest-asyncio | 0.24.0 | Async test support |
+**Backend:** Python 3.14 · FastAPI · Uvicorn · SQLAlchemy · PostgreSQL (psycopg2) · Pydantic · JWT (python-jose) · passlib/bcrypt · pandas · pytest
 
-### Frontend
-| Library | Version | Purpose |
-|---|---|---|
-| Angular | 21.2.0 | SPA framework (standalone components) |
-| Angular CLI | 21.2.19 | Build tooling |
-| TypeScript | 5.9.2 | Language |
-| Tailwind CSS | 3.4.19 | Utility-first CSS |
-| @lucide/angular | 1.28.0 | SVG icon library |
-| echarts | 6.1.0 | Chart rendering engine |
-| ngx-echarts | 21.0.0 | Angular wrapper for ECharts |
-| zone.js | 0.16.2 | Angular change detection |
-| RxJS | 7.8.x | Reactive streams |
-| Node.js | 24.10.0 | JavaScript runtime |
-| npm | 10.9.4 | Package manager |
+**Frontend:** Angular 21 · TypeScript · Tailwind CSS · ECharts (ngx-echarts) · RxJS · Node.js 24
 
-### Infrastructure
-| Service | Config | Purpose |
-|---|---|---|
-| AWS RDS PostgreSQL | db.t4g.micro, 20 GiB gp2, us-east-1 | Database |
-| AWS EC2 | t3.micro, Ubuntu 26.04 LTS, 8 GiB gp3, us-east-1 | Backend hosting |
-| AWS S3 | `databoard-frontend-kritansh`, us-east-1 | Frontend static files |
-| AWS CloudFront (frontend) | `d2bnceyxxb14a6.cloudfront.net` | HTTPS CDN for frontend |
-| AWS CloudFront (backend) | `d1e2ji77wggvgr.cloudfront.net` | HTTPS proxy for EC2 API |
+**Infrastructure:** AWS EC2 (t3.micro, Ubuntu 26.04) · AWS RDS PostgreSQL (db.t4g.micro) · AWS S3 · AWS CloudFront (×2 — frontend + backend)
+
 
 ---
 
@@ -415,23 +414,3 @@ Use this to demo all features including pagination (upload it multiple times to 
 ## 9. Project Constraints
 
 > **README.md** and **ProjectSpec.md** have not been renamed, modified, or deleted as required.
-
----
-
-## 10. Architecture Summary
-
-```
-Browser (Angular)
-    │
-    ├── HTTPS → CloudFront (E2JJHHR9V7XFNX / d2bnceyxxb14a6)
-    │               └── S3 bucket (databoard-frontend-kritansh)
-    │
-    └── HTTPS → CloudFront (E18G2FS7ZKFMK2 / d1e2ji77wggvgr)
-                    └── EC2 t3.micro :8000 (FastAPI + uvicorn + systemd)
-                            │
-                            │  SQLAlchemy + psycopg2
-                            ▼
-                        PostgreSQL
-                        AWS RDS db.t4g.micro
-                        (databoard-db.cixyeakci7ph.us-east-1.rds.amazonaws.com)
-```
