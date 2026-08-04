@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'http://YOUR_EC2_PUBLIC_IP:8000',  // Replace before deploying
+  apiUrl: 'http://54.196.244.196:8000',
 };

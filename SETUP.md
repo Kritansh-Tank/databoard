@@ -43,7 +43,7 @@
 | Service | Config | Purpose |
 |---|---|---|
 | AWS RDS PostgreSQL | db.t4g.micro, 20 GiB gp2 | Database (Free tier) |
-| AWS EC2 | t2.micro, Ubuntu 22.04 | Backend hosting (Free tier) |
+| AWS EC2 | t3.micro, Ubuntu 26.04 LTS, 8 GiB gp3 | Backend hosting (Free tier) |
 | AWS S3 | us-east-1 | Frontend static hosting |
 | AWS CloudFront | — | CDN + HTTPS for frontend |
 
@@ -225,7 +225,7 @@ All `400` errors from FastAPI carry a `{ "detail": "..." }` body. The Angular up
 ### Step A — Backend on EC2
 
 ```powershell
-# Launch EC2: Ubuntu 22.04, t2.micro, allow ports 22 + 8000 in security group
+# Launch EC2: Ubuntu 26.04 LTS, t3.micro, allow ports 22 + 8000 in security group
 # SSH into it:
 ssh -i your-key.pem ubuntu@<ec2-ip>
 ```
