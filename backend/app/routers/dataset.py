@@ -35,10 +35,13 @@ def upload_dataset(
             detail=f"CSV too large: {len(df):,} rows. Maximum allowed is 100,000 rows.",
         )
 
-    # Replace NaN with None so PostgreSQL JSON accepts it.
-    # astype(object) is required — without it pandas silently converts None back
-    # to NaN in numeric columns, which PostgreSQL's JSON type rejects.
-    df = df.astype(object).where(pd.notnull(df), None)
+    # Replace NaN / Inf with None so PostgreSQL JSON accepts it.
+    # Python's json module silently allows NaN but PostgreSQL rejects it.
+    # We check each value explicitly — this is the only reliable approach.
+    def _safe(val):
+        if isinstance(val, float) and not math.isfinite(val):
+            return None
+        return val
 
     dataset = models.Dataset(
         user_id=current_user.id,
@@ -52,7 +55,7 @@ def upload_dataset(
         models.DatasetRow(
             dataset_id=dataset.id,
             row_index=i,
-            data=row.to_dict(),
+            data={k: _safe(v) for k, v in row.items()},
         )
         for i, row in df.iterrows()
     ]
