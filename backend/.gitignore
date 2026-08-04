@@ -1,0 +1,31 @@
+# Environment — contains real DB credentials, NEVER commit
+.env
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+test_databoard.db
+
+# Distribution
+*.egg-info/
+dist/
+build/
+
+# Logs
+*.log
+
+# IDE
+.idea/
+.vscode/

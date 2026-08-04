@@ -1,0 +1,29 @@
+# ── Secrets (NEVER commit these) ──────────────────────────────────────────────
+backend/.env
+
+# ── Python ────────────────────────────────────────────────────────────────────
+backend/venv/
+backend/__pycache__/
+backend/app/__pycache__/
+backend/app/routers/__pycache__/
+backend/tests/__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+*.log
+
+# ── OS / Editor ───────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+
+# ── Frontend (handled by frontend/.gitignore, listed here for root-level git) ─
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
