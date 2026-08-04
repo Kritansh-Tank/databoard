@@ -35,8 +35,10 @@ def upload_dataset(
             detail=f"CSV too large: {len(df):,} rows. Maximum allowed is 100,000 rows.",
         )
 
-    # Replace NaN with None so JSON serialization works
-    df = df.where(pd.notnull(df), None)
+    # Replace NaN with None so PostgreSQL JSON accepts it.
+    # astype(object) is required — without it pandas silently converts None back
+    # to NaN in numeric columns, which PostgreSQL's JSON type rejects.
+    df = df.astype(object).where(pd.notnull(df), None)
 
     dataset = models.Dataset(
         user_id=current_user.id,
