@@ -19,7 +19,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:4200",          # Angular dev
         "http://databoard-frontend-kritansh.s3-website-us-east-1.amazonaws.com",  # S3
-        "https://*.cloudfront.net",       # Production CloudFront
+        "https://d2bnceyxxb14a6.cloudfront.net",  # CloudFront (HTTPS)
     ],
     allow_credentials=True,
     allow_methods=["*"],
