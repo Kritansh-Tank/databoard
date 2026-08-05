@@ -27,3 +27,6 @@ Thumbs.db
 frontend/node_modules/
 frontend/dist/
 frontend/.angular/
+
+# ── Local test data (not for repo) ───────────────────────────────────────────
+test_csvs/

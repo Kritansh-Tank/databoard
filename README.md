@@ -21,6 +21,30 @@
 
 ---
 
+## User Interface
+
+- Home
+ 
+  ![Home](assets/home.png)
+
+- Register
+ 
+  ![Register](assets/register.png)
+
+- Login
+ 
+  ![Login](assets/login.png)
+
+- Data
+
+  ![Data](assets/data.png)
+
+- Plot
+
+  ![Plot](assets/plot.png)
+
+---
+
 ## Architecture
 
 ```
@@ -405,11 +429,3 @@ git pull && sudo systemctl restart databoard
 `sample_data.csv` (included in repo root) has **30 rows** with columns:
 - `name` (text), `age` (numeric), `salary` (numeric), `department` (text),
 - `years_experience` (numeric), `performance_score` (numeric), `is_remote` (text)
-
-Use this to demo all features including pagination (upload it multiple times to create >1 page).
-
----
-
-## 9. Project Constraints
-
-> **README.md** and **ProjectSpec.md** have not been renamed, modified, or deleted as required.
