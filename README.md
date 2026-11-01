@@ -2,25 +2,6 @@
 
 ---
 
-## Live Demo
-
-> The application is fully deployed on AWS. No local setup required.
-
-| | URL |
-|---|---|
-| **Frontend App** | https://d2bnceyxxb14a6.cloudfront.net |
-| **API (Interactive Docs)** | https://d1e2ji77wggvgr.cloudfront.net/docs |
-
-**Demo account (ready to use):**
-| Field | Value |
-|---|---|
-| Email | `test@example.com` |
-| Password | `password123` |
-
-**Or register a new account**, upload `sample_data.csv` (in repo root), and explore stats & charts.
-
----
-
 ## User Interface
 
 - Home
