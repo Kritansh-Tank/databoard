@@ -230,15 +230,6 @@ All `400` errors from FastAPI carry a `{ "detail": "..." }` body. The Angular up
 
 ## 7. AWS Production Deployment
 
-| Component | URL |
-|---|---|
-| Frontend (HTTPS) | https://d2bnceyxxb14a6.cloudfront.net |
-| Backend API (HTTPS) | https://d1e2ji77wggvgr.cloudfront.net |
-| Backend API docs | https://d1e2ji77wggvgr.cloudfront.net/docs |
-| S3 (HTTP fallback) | http://databoard-frontend-kritansh.s3-website-us-east-1.amazonaws.com |
-
----
-
 ### Step A — Backend on EC2
 
 ```bash
